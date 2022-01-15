@@ -120,7 +120,7 @@ class UTM:
         combined_headers = self._combine_headers()
 
         is_changed = False
-        info, result = self._lookup_entry(self.module, self.request_url)
+        info, result = self.lookup_entry(self.module, self.request_url)
         if info["status"] >= 400:
             self.module.fail_json(result=json.loads(info))
         else:
@@ -129,6 +129,8 @@ class UTM:
                 response, info = fetch_url(self.module, self.request_url, method="POST",
                                            headers=combined_headers,
                                            data=data_as_json_string)
+                if info["status"] < 100:
+                    self.module.fail_json(msg="Connection failed: "+info["status"])
                 if info["status"] >= 400:
                     self.module.fail_json(msg=json.loads(info["body"]))
                 is_changed = True
@@ -138,6 +140,8 @@ class UTM:
                     response, info = fetch_url(self.module, self.request_url + result['_ref'], method="PUT",
                                                headers=combined_headers,
                                                data=data_as_json_string)
+                    if info["status"] < 100:
+                        self.module.fail_json(msg="Connection failed: "+info["status"])
                     if info['status'] >= 400:
                         self.module.fail_json(msg=json.loads(info["body"]))
                     is_changed = True
@@ -162,7 +166,7 @@ class UTM:
         removes an object from utm
         """
         is_changed = False
-        info, result = self._lookup_entry(self.module, self.request_url)
+        info, result = self.lookup_entry(self.module, self.request_url)
         if result is not None:
             response, info = fetch_url(self.module, self.request_url + result['_ref'], method="DELETE",
                                        headers={"Accept": "application/json", "X-Restd-Err-Ack": "all"},
@@ -173,7 +177,7 @@ class UTM:
                 is_changed = True
         self.module.exit_json(changed=is_changed)
 
-    def _lookup_entry(self, module, request_url):
+    def lookup_entry(self, module, request_url):
         """
         Lookup for existing entry
         :param module:
