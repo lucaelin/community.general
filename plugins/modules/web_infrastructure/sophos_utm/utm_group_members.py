@@ -99,6 +99,8 @@ def main():
     try:
         utm = UTM(module, endpoint, key_to_check_for_changes)
         info, result = utm.lookup_entry(utm.module, utm.request_url)
+        if result is None:
+            module.fail_json(msg="The specified group does not exist")
         current = result.get("members")
         target = utm.module.params.get("members")
         if (utm.module.params.get("state") == 'present'):
