@@ -61,16 +61,6 @@ options:
         elements: str
         description:
           - A list of mac address to serve this address to
-    resolved:
-        description:
-          - whether the hostname's ipv4 address is already resolved or not
-        default: False
-        type: bool
-    resolved6:
-        description:
-          - whether the hostname's ipv6 address is already resolved or not
-        default: False
-        type: bool
     timeout:
         type: int
         description:
@@ -136,25 +126,30 @@ from ansible.module_utils.common.text.converters import to_native
 
 def main():
     endpoint = "network/host"
-    key_to_check_for_changes = ["comment", "address", "address6", "interface"]
+    key_to_check_for_changes = ["comment", "address", "address6", "duids", "hostnames", "reverse_dns", "interface", "macs"]
     module = UTMModule(
         argument_spec=dict(
             name=dict(type='str', required=True),
-            address=dict(type='str', required=False),
-            address6=dict(type='str', required=False),
+            address=dict(type='str', required=False, default=''),
+            address6=dict(type='str', required=False, default=''),
             comment=dict(type='str', required=False, default="Created by ansible"),
-            duids=dict(type='list', required=False, elements='str'),
-            hostnames=dict(type='list', required=False, elements='str'),
-            reverse_dns=dict(type='bool', required=False),
-            interface=dict(type='str', required=False),
-            macs=dict(type='list', required=False, elements='str'),
+            duids=dict(type='list', required=False, elements='str', default=[]),
+            hostnames=dict(type='list', required=False, elements='str', default=[]),
+            reverse_dns=dict(type='bool', required=False, default=False),
+            interface=dict(type='str', required=False, default=''),
+            macs=dict(type='list', required=False, elements='str', default=[]),
             resolved=dict(type='bool', required=False),
             resolved6=dict(type='bool', required=False),
             timeout=dict(type='int', required=False)
         )
     )
     try:
-        UTM(module, endpoint, key_to_check_for_changes).execute()
+        utm = UTM(module, endpoint, key_to_check_for_changes)
+        if utm.module.params.get("resolved") == None:
+            utm.module.params["resolved"] = utm.module.params.get("address") != ''
+        if utm.module.params.get("resolved6") == None:
+            utm.module.params["resolved6"] = utm.module.params.get("address6") != ''
+        utm.execute()
     except Exception as e:
         module.fail_json(msg=to_native(e))
 

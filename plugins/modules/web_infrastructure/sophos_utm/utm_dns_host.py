@@ -49,16 +49,6 @@ options:
         type: str
         description:
           - The reference name of the interface to use. If not provided the default interface will be used
-    resolved:
-        description:
-          - whether the hostname's ipv4 address is already resolved or not
-        default: False
-        type: bool
-    resolved6:
-        description:
-          - whether the hostname's ipv6 address is already resolved or not
-        default: False
-        type: bool
     timeout:
         type: int
         description:
@@ -134,7 +124,7 @@ from ansible.module_utils.common.text.converters import to_native
 
 def main():
     endpoint = "network/dns_host"
-    key_to_check_for_changes = ["comment", "hostname", "interface"]
+    key_to_check_for_changes = ["comment", "hostname", "address", "address6", "interface"]
     module = UTMModule(
         argument_spec=dict(
             name=dict(type='str', required=True),
@@ -143,13 +133,18 @@ def main():
             comment=dict(type='str', required=False, default=""),
             hostname=dict(type='str', required=False),
             interface=dict(type='str', required=False, default=""),
-            resolved=dict(type='bool', required=False, default=False),
-            resolved6=dict(type='bool', required=False, default=False),
+            resolved=dict(type='bool', required=False),
+            resolved6=dict(type='bool', required=False),
             timeout=dict(type='int', required=False, default=0),
         )
     )
     try:
-        UTM(module, endpoint, key_to_check_for_changes).execute()
+        utm = UTM(module, endpoint, key_to_check_for_changes)
+        if utm.module.params.get("resolved") == None:
+            utm.module.params["resolved"] = utm.module.params.get("address") != '0.0.0.0'
+        if utm.module.params.get("resolved6") == None:
+            utm.module.params["resolved6"] = utm.module.params.get("address6") != '::'
+        utm.execute()
     except Exception as e:
         module.fail_json(msg=to_native(e))
 
