@@ -124,7 +124,7 @@ from ansible.module_utils.common.text.converters import to_native
 
 def main():
     endpoint = "network/dns_host"
-    key_to_check_for_changes = ["comment", "hostname", "address", "address6", "interface"]
+    key_to_check_for_changes = ["comment", "hostname", "interface"]
     module = UTMModule(
         argument_spec=dict(
             name=dict(type='str', required=True),
@@ -140,10 +140,14 @@ def main():
     )
     try:
         utm = UTM(module, endpoint, key_to_check_for_changes)
-        if utm.module.params.get("resolved") == None:
-            utm.module.params["resolved"] = utm.module.params.get("address") != '0.0.0.0'
-        if utm.module.params.get("resolved6") == None:
-            utm.module.params["resolved6"] = utm.module.params.get("address6") != '::'
+        if utm.module.params.get("address") != '0.0.0.0':
+            key_to_check_for_changes.append("address")
+        if utm.module.params.get("address6") != '::':
+            key_to_check_for_changes.append("address6")
+        if utm.module.params.get("resolved") == None and utm.module.params.get("address") != '0.0.0.0':
+            utm.module.params["resolved"] = True
+        if utm.module.params.get("resolved6") == None and utm.module.params.get("address6") != '::':
+            utm.module.params["resolved6"] = True
         utm.execute()
     except Exception as e:
         module.fail_json(msg=to_native(e))
